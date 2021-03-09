@@ -4,8 +4,14 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedInputStream;
@@ -16,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
 //DB클래스 생성 (생성자(DB생성), onCreate(테이블 생성))
  //자료준비>>DB변환
@@ -24,12 +31,22 @@ import java.io.OutputStream;
  //MyDBHelper 클래스는 생성할 때 만드는 클래스
  //이미 존재하는 DB를 읽어들임
 public class MainActivity extends AppCompatActivity {
+    Spinner spCity, spHName;
+    TextView tvResult;
     SQLiteDatabase sqlDB;
+    ArrayAdapter<String> adapterC, adapterH;
+    ArrayList<String> siData, nameData;
+    String result;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        spCity=findViewById(R.id.spCity);
+        spHName=findViewById(R.id.spHName);
+        tvResult=findViewById(R.id.tvResult);
+        siData=new ArrayList<String>();
+        nameData=new ArrayList<String>();
         //파일 처리할 경우 예외처리 필수
         try {
             boolean check= isCheckDB(this);
@@ -38,6 +55,60 @@ public class MainActivity extends AppCompatActivity {
             }
             sqlDB=SQLiteDatabase.openDatabase("/data/data/com.example.petdb/databases/petHDB.db",
                     null, SQLiteDatabase.OPEN_READONLY);
+            Cursor cursor;
+            cursor=sqlDB.rawQuery("SELECT distinct(hs) FROM petHTBL;", null);
+            while(cursor.moveToNext()){
+                siData.add(cursor.getString(0));
+            }
+            adapterC=new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_spinner_dropdown_item, siData );
+            spCity.setAdapter(adapterC);
+            cursor.close();
+            spCity.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    nameData.clear();
+                    Cursor cursor1;
+                    cursor1=sqlDB.rawQuery("SELECT name FROM petHTBL WHERE hs='"+spCity.getSelectedItem().toString()+"';",null );
+                    while(cursor1.moveToNext()){
+                        nameData.add(cursor1.getString(0));
+                    }
+                    adapterH=new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_spinner_dropdown_item,nameData);
+                    spHName.setAdapter(adapterH);
+                    cursor1.close();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+
+                }
+            });
+            spHName.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    Cursor cursor2;
+                    cursor2=sqlDB.rawQuery("SELECT * FROM petHTBL " +
+                            "WHERE  hs='"+spCity.getSelectedItem().toString()+
+                            "'AND name='"+spHName.getSelectedItem().toString()+"';",null);
+                    cursor2.moveToFirst();
+                    result="동물병원이름 : " + cursor2.getString(1)+"\n";
+                    if(cursor2.getString(3).equals("정상")) {
+                        result += "개업일 : " + cursor2.getString(2) + "\n";
+                    }else{
+                        result += "개업일 : " + cursor2.getString(2)
+                                + "("+cursor2.getString(3)+":"+cursor2.getString(4)+")"+"\n";
+                    }
+                    result+="전화번호 : " + cursor2.getString(5)+"\n";
+                    result+="우편번호 : " + cursor2.getString(6)+"\n";
+                    result+="주소 : " + cursor2.getString(7)+"\n";
+                    tvResult.setText(result);
+                    cursor2.close();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+
+                }
+            });
         } catch (Exception e){
             showToast("복사 중에 에러가 발생했습니다.");
         }
