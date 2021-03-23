@@ -3,6 +3,7 @@ package com.example.petdb;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
     ArrayAdapter<String> adapterC, adapterH;
     ArrayList<String> siData, nameData;
     String result;
+    Button btnMap;
+    double lat, lng;// 동물병원의 위도와 경도
+    String name, tel;// 동물병원의 이름과 전화번호를 전달
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         spCity=findViewById(R.id.spCity);
         spHName=findViewById(R.id.spHName);
         tvResult=findViewById(R.id.tvResult);
+        btnMap=findViewById(R.id.btnMap);
         siData=new ArrayList<String>();
         nameData=new ArrayList<String>();
         //파일 처리할 경우 예외처리 필수
@@ -89,19 +95,27 @@ public class MainActivity extends AppCompatActivity {
                     cursor2=sqlDB.rawQuery("SELECT * FROM petHTBL " +
                             "WHERE  hs='"+spCity.getSelectedItem().toString()+
                             "'AND name='"+spHName.getSelectedItem().toString()+"';",null);
-                    cursor2.moveToFirst();
-                    result="동물병원이름 : " + cursor2.getString(1)+"\n";
-                    if(cursor2.getString(3).equals("정상")) {
-                        result += "개업일 : " + cursor2.getString(2) + "\n";
+                    if(cursor2.moveToFirst()){
+                        name=cursor2.getString(1);
+                        tel=cursor2.getString(5);
+                        result="동물병원이름 : " + name +"\n";
+                        if(cursor2.getString(3).equals("정상")) {
+                            result += "개업일 : " + cursor2.getString(2) + "\n";
+                        }else{
+                            result += "개업일 : " + cursor2.getString(2)
+                                    + "("+cursor2.getString(3)+":"+cursor2.getString(4)+")"+"\n";
+                        }
+                        result+="전화번호 : " + tel +"\n";
+                        result+="우편번호 : " + cursor2.getString(6)+"\n";
+                        result+="주소 : " + cursor2.getString(7)+"\n";
+                        tvResult.setText(result);
+                        cursor2.close();
+                        btnMap.setEnabled(true);
+                        lat=cursor2.getDouble(8);
+                        lng=cursor2.getDouble(9);
                     }else{
-                        result += "개업일 : " + cursor2.getString(2)
-                                + "("+cursor2.getString(3)+":"+cursor2.getString(4)+")"+"\n";
+                        showToast("자료가 존재하지 않습니다.");
                     }
-                    result+="전화번호 : " + cursor2.getString(5)+"\n";
-                    result+="우편번호 : " + cursor2.getString(6)+"\n";
-                    result+="주소 : " + cursor2.getString(7)+"\n";
-                    tvResult.setText(result);
-                    cursor2.close();
                 }
 
                 @Override
@@ -112,6 +126,17 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e){
             showToast("복사 중에 에러가 발생했습니다.");
         }
+        btnMap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent=new Intent(getApplicationContext(), MapsActivity.class);
+                intent.putExtra("Name", name);
+                intent.putExtra("Tel", tel);
+                intent.putExtra("Lat", lat);
+                intent.putExtra("Lng", lng);
+                startActivity(intent);
+            }
+        });
     }
     void showToast(String msg){
         Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
