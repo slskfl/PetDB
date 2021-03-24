@@ -108,11 +108,11 @@ public class MainActivity extends AppCompatActivity {
                         result+="전화번호 : " + tel +"\n";
                         result+="우편번호 : " + cursor2.getString(6)+"\n";
                         result+="주소 : " + cursor2.getString(7)+"\n";
+                        lat=cursor2.getDouble(8);
+                        lng=cursor2.getDouble(9);
                         tvResult.setText(result);
                         cursor2.close();
                         btnMap.setEnabled(true);
-                        lat=cursor2.getDouble(8);
-                        lng=cursor2.getDouble(9);
                     }else{
                         showToast("자료가 존재하지 않습니다.");
                     }
